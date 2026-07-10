@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="110" fill="#ffffff"/>
+  <g fill="#0a0a0a">
+    <!-- row 1 -->
+    <rect x="89"  y="45"  width="70" height="70" rx="8"/>
+    <rect x="177" y="45"  width="70" height="70" rx="8"/>
+    <rect x="265" y="45"  width="70" height="70" rx="8"/>
+    <rect x="353" y="45"  width="70" height="70" rx="8"/>
+    <!-- row 2 -->
+    <rect x="89"  y="133" width="70" height="70" rx="8"/>
+    <!-- row 3 -->
+    <rect x="89"  y="221" width="70" height="70" rx="8"/>
+    <rect x="177" y="221" width="70" height="70" rx="8"/>
+    <rect x="265" y="221" width="70" height="70" rx="8"/>
+    <rect x="353" y="221" width="70" height="70" rx="8"/>
+    <!-- row 4 -->
+    <rect x="353" y="309" width="70" height="70" rx="8"/>
+    <!-- row 5 -->
+    <rect x="89"  y="397" width="70" height="70" rx="8"/>
+    <rect x="177" y="397" width="70" height="70" rx="8"/>
+    <rect x="265" y="397" width="70" height="70" rx="8"/>
+    <rect x="353" y="397" width="70" height="70" rx="8"/>
+  </g>
+</svg>
