@@ -22,27 +22,34 @@
   </div>
 
   <div class="wrap">
-    <div class="board">
-      <canvas id="game" width="400" height="400"></canvas>
-      <div class="overlay" id="overlay">
-        <p class="overlay-title" id="overlayTitle">snake</p>
-        <p class="overlay-msg">
-          <span id="overlayMsg">press space to start</span><span class="cursor">▊</span>
-        </p>
+    <div class="main">
+      <div class="left">
+        <div class="board">
+          <canvas id="game" width="400" height="400"></canvas>
+          <div class="overlay" id="overlay">
+            <p class="overlay-title" id="overlayTitle">snake</p>
+            <p class="overlay-msg">
+              <span id="overlayMsg">press space to start</span><span class="cursor">▊</span>
+            </p>
+          </div>
+        </div>
+        <div class="statusbar">
+          <span id="score">score 0</span>
+          <span id="best">best 0</span>
+          <span class="keys">wasd/arrows · space · <span id="mute">♪ on</span></span>
+        </div>
       </div>
-    </div>
-    <div class="statusbar">
-      <span id="score">score 0</span>
-      <span id="best">best 0</span>
-      <span class="keys">wasd/arrows · space · <span id="mute">♪ on</span></span>
+
+      <aside class="right">
+        <div class="lb-head">leaderboard · top 20</div>
+        <ol class="leaderboard" id="leaderboard"></ol>
+        <p class="myrank" id="myrank"></p>
+      </aside>
     </div>
 
-    <section class="panel" id="panel">
+    <footer class="footer">
       <div class="auth" id="auth"></div>
-      <div class="lb-head">leaderboard · top 20</div>
-      <ol class="leaderboard" id="leaderboard"></ol>
-      <p class="myrank" id="myrank"></p>
-    </section>
+    </footer>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
