@@ -159,10 +159,11 @@
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  // strip the leftover #access_token…/?code… (and bare "#") the OAuth redirect
-  // leaves behind, once Supabase has consumed it — keeps the URL clean.
+  // strip the leftover #access_token…/?code… (and even a bare trailing "#",
+  // whose location.hash is "") the OAuth redirect leaves behind — keeps the
+  // URL clean once Supabase has consumed it.
   function cleanUrl() {
-    if (location.hash || location.search) {
+    if (location.href.indexOf("#") !== -1 || location.search) {
       history.replaceState(null, "", location.pathname);
     }
   }
