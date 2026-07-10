@@ -164,13 +164,6 @@ canvas {
 }
 .google-btn:hover { filter: brightness(1.1); }
 
-.or {
-  color: var(--dim);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-}
-
 /* ---- leaderboard panel ---- */
 .panel {
   width: var(--size);

@@ -1,6 +1,6 @@
 // ---- Online leaderboard + gated login (Supabase) -------------------------
-// A full-screen gate requires magic-link sign-in (and a username) before the
-// game unlocks. Once in, scores post to a global top-20 best-score board.
+// A full-screen gate requires Google sign-in (and a username) before the game
+// unlocks. Once in, scores post to a global top-20 best-score board.
 // If Supabase keys aren't configured, the gate is skipped and the game plays.
 
 (function () {
@@ -39,14 +39,9 @@
     lock(true);
     gateBody.innerHTML =
       '<p class="gate-sub">sign in to play</p>' +
-      '<button id="googleBtn" class="google-btn">continue with Google</button>' +
-      '<div class="or">or</div>' +
-      '<form id="loginForm" class="gate-form">' +
-      '<input id="email" type="email" placeholder="your@email.com" required />' +
-      "<button type=\"submit\">send magic link</button></form>";
+      '<button id="googleBtn" class="google-btn">continue with Google</button>';
     gateMsg.textContent = "";
     document.getElementById("googleBtn").addEventListener("click", onGoogle);
-    document.getElementById("loginForm").addEventListener("submit", onLogin);
   }
 
   function showUsername() {
@@ -90,16 +85,6 @@
     }
     if (!profile) { showUsername(); return; }
     showGame();
-  }
-
-  async function onLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById("email").value.trim();
-    if (!email) return;
-    gateMsg.textContent = "sending…";
-    const emailRedirectTo = location.origin + location.pathname;   // return here
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo } });
-    gateMsg.textContent = error ? "error: " + error.message : "check your email for a login link ✉️";
   }
 
   async function onCreateProfile(e) {
