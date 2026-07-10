@@ -46,8 +46,9 @@
   function showLogin() {
     lock(true);
     gateBody.innerHTML =
+      '<p class="term-prompt">&gt; authenticate to play<span class="cursor">▊</span></p>' +
       '<button id="googleBtn" class="google-btn">' + GOOGLE_G +
-      "<span>Sign in with Google</span></button>";
+      "<span>sign in with google</span></button>";
     gateMsg.textContent = "";
     document.getElementById("googleBtn").addEventListener("click", onGoogle);
   }
@@ -56,7 +57,7 @@
     lock(true);
     const guess = suggestName();               // prefill from Google name / email
     gateBody.innerHTML =
-      '<p class="gate-sub">pick a username</p>' +
+      '<p class="term-prompt">&gt; choose your handle<span class="cursor">▊</span></p>' +
       '<form id="nameForm" class="gate-form">' +
       '<input id="username" maxlength="16" value="' + guess + '" placeholder="username" required autofocus />' +
       "<button type=\"submit\">start playing</button></form>";
