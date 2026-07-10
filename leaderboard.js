@@ -39,22 +39,39 @@
     lock(true);
     gateBody.innerHTML =
       '<p class="gate-sub">sign in to play</p>' +
+      '<button id="googleBtn" class="google-btn">continue with Google</button>' +
+      '<div class="or">or</div>' +
       '<form id="loginForm" class="gate-form">' +
-      '<input id="email" type="email" placeholder="your@email.com" required autofocus />' +
+      '<input id="email" type="email" placeholder="your@email.com" required />' +
       "<button type=\"submit\">send magic link</button></form>";
     gateMsg.textContent = "";
+    document.getElementById("googleBtn").addEventListener("click", onGoogle);
     document.getElementById("loginForm").addEventListener("submit", onLogin);
   }
 
   function showUsername() {
     lock(true);
+    const guess = suggestName();               // prefill from Google name / email
     gateBody.innerHTML =
       '<p class="gate-sub">pick a username</p>' +
       '<form id="nameForm" class="gate-form">' +
-      '<input id="username" maxlength="16" placeholder="username" required autofocus />' +
+      '<input id="username" maxlength="16" value="' + guess + '" placeholder="username" required autofocus />' +
       "<button type=\"submit\">start playing</button></form>";
     gateMsg.textContent = "";
     document.getElementById("nameForm").addEventListener("submit", onCreateProfile);
+  }
+
+  function suggestName() {
+    const m = (user && user.user_metadata) || {};
+    const raw = m.user_name || m.full_name || m.name || (user && user.email || "").split("@")[0] || "";
+    return raw.replace(/[^A-Za-z0-9_]/g, "").slice(0, 16);   // only safe chars
+  }
+
+  async function onGoogle() {
+    gateMsg.textContent = "redirecting to Google…";
+    const redirectTo = location.origin + location.pathname;
+    const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    if (error) gateMsg.textContent = "error: " + error.message;
   }
 
   function showGame() {
