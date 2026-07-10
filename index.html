@@ -22,7 +22,18 @@
       <span id="best">best 0</span>
       <span class="keys">wasd/arrows · space · <span id="mute">♪ on</span></span>
     </div>
+
+    <section class="panel" id="panel">
+      <div class="auth" id="auth"></div>
+      <div class="lb-head">leaderboard · top 20</div>
+      <ol class="leaderboard" id="leaderboard"></ol>
+      <p class="myrank" id="myrank"></p>
+    </section>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="leaderboard.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

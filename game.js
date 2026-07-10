@@ -182,6 +182,8 @@ function gameOver() {
   } else {
     showOverlay("game over", "score " + score + " · space to play again");
   }
+  // let the online leaderboard (if configured) record this run
+  document.dispatchEvent(new CustomEvent("snake:gameover", { detail: { score } }));
 }
 
 // ---- Input ----------------------------------------------------------------
