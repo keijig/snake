@@ -133,12 +133,12 @@ canvas {
 .gate.hidden { display: none; }
 
 .gate-card {
-  width: min(92vw, 360px);
+  width: min(92vw, 340px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.85rem;
-  padding: 2.2rem 1.75rem;
+  gap: 1.4rem;
+  padding: 2.4rem 1.75rem;
   text-align: center;
   border: 1px solid #17301c;
   border-radius: 14px;
@@ -149,7 +149,7 @@ canvas {
 }
 
 /* mini snake + food, echoing the game */
-.gate-logo { display: flex; gap: 4px; align-items: center; margin-bottom: 0.1rem; }
+.gate-logo { display: flex; gap: 4px; align-items: center; }
 .gate-logo .seg,
 .gate-logo .food {
   width: 15px; height: 15px; border-radius: 3px;
@@ -170,11 +170,10 @@ canvas {
   color: var(--accent);
   text-shadow: 0 0 16px rgba(74, 222, 128, 0.5);
 }
-.gate-tag { margin: 0 0 0.6rem; color: var(--dim); font-size: 12.5px; }
 .gate-sub { margin: 0; color: var(--fg); }
-.gate-fine { margin: 0.2rem 0 0; color: var(--dim); font-size: 12px; line-height: 1.4; }
 .gate-form { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; }
-.gate-msg { margin: 0; min-height: 1.2em; color: var(--dim); }
+.gate-msg:empty { display: none; }              /* no reserved space when blank */
+.gate-msg { margin: 0; color: var(--dim); font-size: 12.5px; }
 
 /* real Google button: white with the multicolor G */
 .google-btn {

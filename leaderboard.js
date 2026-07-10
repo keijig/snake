@@ -47,8 +47,7 @@
     lock(true);
     gateBody.innerHTML =
       '<button id="googleBtn" class="google-btn">' + GOOGLE_G +
-      "<span>Sign in with Google</span></button>" +
-      '<p class="gate-fine">sign in to save your score and compete for #1</p>';
+      "<span>Sign in with Google</span></button>";
     gateMsg.textContent = "";
     document.getElementById("googleBtn").addEventListener("click", onGoogle);
   }
