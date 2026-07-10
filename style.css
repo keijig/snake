@@ -191,19 +191,6 @@ canvas {
   align-items: baseline;
 }
 
-/* mini snake + food, echoing the game */
-.gate-logo { display: flex; gap: 4px; align-items: center; }
-.gate-logo .seg,
-.gate-logo .food {
-  width: 15px; height: 15px; border-radius: 3px;
-  background: #4ade80; box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
-}
-.gate-logo .head { background: #7dff9b; }
-.gate-logo .food {
-  margin-left: 7px; background: #e0af68;
-  box-shadow: 0 0 8px rgba(224, 175, 104, 0.6);
-}
-
 .gate-title {
   margin: 0;
   padding-left: 0.35em;          /* balance the letter-spacing so it reads centered */
