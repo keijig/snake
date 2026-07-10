@@ -207,6 +207,7 @@ function queueTurn(dir) {
 }
 
 document.addEventListener("keydown", (e) => {
+  if (window.SNAKE_LOCKED) return;            // login gate is up — ignore game keys
   const key = e.key;
 
   initAudio();                                // unlock audio on first gesture
@@ -322,6 +323,11 @@ function drawGrid() {
   }
   ctx.stroke();
 }
+
+// pause the game if the login gate takes over (e.g. the player logs out)
+document.addEventListener("snake:lock", () => {
+  if (state === "playing") pauseGame();
+});
 
 // ---- Start ----------------------------------------------------------------
 muteEl.textContent = muted ? "♪ off" : "♪ on";

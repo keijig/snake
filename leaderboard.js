@@ -1,81 +1,105 @@
-// ---- Online leaderboard (Supabase) ---------------------------------------
-// Magic-link accounts + a global top-20 best-score board. If the Supabase keys
-// in config.js aren't filled in yet, this quietly shows "coming soon" and the
-// game plays normally.
+// ---- Online leaderboard + gated login (Supabase) -------------------------
+// A full-screen gate requires magic-link sign-in (and a username) before the
+// game unlocks. Once in, scores post to a global top-20 best-score board.
+// If Supabase keys aren't configured, the gate is skipped and the game plays.
 
 (function () {
   const URL_ = window.SUPABASE_URL;
   const KEY_ = window.SUPABASE_ANON_KEY;
   const configured = URL_ && KEY_ && !URL_.startsWith("YOUR-") && !KEY_.startsWith("YOUR-");
 
+  const gateEl = document.getElementById("gate");
+  const gateBody = document.getElementById("gateBody");
+  const gateMsg = document.getElementById("gateMsg");
   const authEl = document.getElementById("auth");
   const listEl = document.getElementById("leaderboard");
   const rankEl = document.getElementById("myrank");
 
+  // Lock = gate visible + game input blocked. Start locked to avoid a flash of
+  // the game before we know whether the player is signed in.
+  window.SNAKE_LOCKED = true;
+  function lock(on) {
+    window.SNAKE_LOCKED = on;
+    gateEl.classList.toggle("hidden", !on);
+    if (on) document.dispatchEvent(new Event("snake:lock"));   // pause if playing
+  }
+
   if (!configured) {
+    lock(false);
     authEl.innerHTML = '<span class="muted">leaderboard coming soon</span>';
     return;
   }
 
   const sb = window.supabase.createClient(URL_, KEY_);
-  let user = null;                              // the logged-in auth user
+  let user = null;                              // logged-in auth user
   let profile = null;                          // their { username, best_score }
 
-  // ---- auth / profile UI --------------------------------------------------
-  async function refreshAuth() {
-    if (!user) {                               // logged out → ask for email
-      authEl.innerHTML =
-        '<form id="loginForm" class="authrow">' +
-        '<input id="email" type="email" placeholder="your@email.com" required />' +
-        '<button type="submit">send login link</button></form>';
-      document.getElementById("loginForm").addEventListener("submit", onLogin);
-      rankEl.textContent = "";
-      return;
-    }
-    if (!profile) {                            // logged in but no username yet
-      const { data } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
-      profile = data;
-    }
-    if (!profile) {                            // → ask them to pick one
-      authEl.innerHTML =
-        '<form id="nameForm" class="authrow">' +
-        '<input id="username" maxlength="16" placeholder="pick a username" required />' +
-        '<button type="submit">save</button></form>';
-      document.getElementById("nameForm").addEventListener("submit", onCreateProfile);
-      return;
-    }
-    authEl.innerHTML =                          // fully set up
+  // ---- gate screens -------------------------------------------------------
+  function showLogin() {
+    lock(true);
+    gateBody.innerHTML =
+      '<p class="gate-sub">sign in to play</p>' +
+      '<form id="loginForm" class="gate-form">' +
+      '<input id="email" type="email" placeholder="your@email.com" required autofocus />' +
+      "<button type=\"submit\">send magic link</button></form>";
+    gateMsg.textContent = "";
+    document.getElementById("loginForm").addEventListener("submit", onLogin);
+  }
+
+  function showUsername() {
+    lock(true);
+    gateBody.innerHTML =
+      '<p class="gate-sub">pick a username</p>' +
+      '<form id="nameForm" class="gate-form">' +
+      '<input id="username" maxlength="16" placeholder="username" required autofocus />' +
+      "<button type=\"submit\">start playing</button></form>";
+    gateMsg.textContent = "";
+    document.getElementById("nameForm").addEventListener("submit", onCreateProfile);
+  }
+
+  function showGame() {
+    lock(false);
+    authEl.innerHTML =
       "<span>signed in as <b>" + esc(profile.username) + "</b></span>" +
       '<button id="logout">log out</button>';
     document.getElementById("logout").addEventListener("click", () => sb.auth.signOut());
+  }
+
+  async function updateGate() {
+    if (!user) { profile = null; showLogin(); return; }
+    if (!profile) {
+      const { data } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      profile = data;
+    }
+    if (!profile) { showUsername(); return; }
+    showGame();
   }
 
   async function onLogin(e) {
     e.preventDefault();
     const email = document.getElementById("email").value.trim();
     if (!email) return;
-    const emailRedirectTo = location.origin + location.pathname;   // come back here
+    gateMsg.textContent = "sending…";
+    const emailRedirectTo = location.origin + location.pathname;   // return here
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo } });
-    authEl.innerHTML = error
-      ? '<span class="muted">error: ' + esc(error.message) + "</span>"
-      : '<span class="muted">check your email for a login link ✉️</span>';
+    gateMsg.textContent = error ? "error: " + error.message : "check your email for a login link ✉️";
   }
 
   async function onCreateProfile(e) {
     e.preventDefault();
     const username = document.getElementById("username").value.trim();
     if (!/^[A-Za-z0-9_]{3,16}$/.test(username)) {
-      alert("username must be 3–16 letters, numbers, or underscores");
+      gateMsg.textContent = "3–16 letters, numbers, or underscores";
       return;
     }
     const { data, error } = await sb.from("profiles")
       .insert({ id: user.id, username, best_score: 0 }).select().single();
     if (error) {
-      alert(error.code === "23505" ? "that username is taken" : error.message);
+      gateMsg.textContent = error.code === "23505" ? "that username is taken" : error.message;
       return;
     }
     profile = data;
-    await refreshAuth();
+    showGame();
     await loadBoard();
   }
 
@@ -128,7 +152,7 @@
   sb.auth.onAuthStateChange(async (_event, session) => {
     user = session?.user ?? null;
     profile = null;
-    await refreshAuth();
+    await updateGate();
     await loadBoard();
   });
 
@@ -137,7 +161,7 @@
   (async function boot() {
     const { data } = await sb.auth.getSession();
     user = data.session?.user ?? null;
-    await refreshAuth();
+    await updateGate();
     await loadBoard();
   })();
 })();
