@@ -159,10 +159,19 @@
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
+  // strip the leftover #access_token…/?code… (and bare "#") the OAuth redirect
+  // leaves behind, once Supabase has consumed it — keeps the URL clean.
+  function cleanUrl() {
+    if (location.hash || location.search) {
+      history.replaceState(null, "", location.pathname);
+    }
+  }
+
   // ---- wire up ------------------------------------------------------------
   sb.auth.onAuthStateChange(async (_event, session) => {
     user = session?.user ?? null;
     profile = null;
+    cleanUrl();                                // drop the OAuth redirect leftovers
     await updateGate();
     await loadBoard();
   });
@@ -172,6 +181,7 @@
   (async function boot() {
     const { data } = await sb.auth.getSession();
     user = data.session?.user ?? null;
+    cleanUrl();
     await updateGate();
     await loadBoard();
   })();
