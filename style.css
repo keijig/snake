@@ -1,0 +1,120 @@
+:root {
+  --bg: #000000;          /* terminal black */
+  --panel: #030503;       /* the "screen" */
+  --fg: #7dd88f;          /* phosphor green */
+  --dim: #2f5138;         /* muted green for secondary text */
+  --accent: #4ade80;
+  /* board size: native 400px, scales down to fit small screens */
+  --size: min(92vmin, 400px);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "SF Mono", "JetBrains Mono", "Menlo", "Consolas", ui-monospace, monospace;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: var(--size);
+}
+
+/* canvas + overlay + scanlines stack in one box */
+.board {
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  border: 1px solid #0c140d;
+  border-radius: 6px;
+  overflow: hidden;
+  /* phosphor glow around the whole screen + edge vignette */
+  box-shadow:
+    0 0 24px rgba(125, 216, 143, 0.12),
+    inset 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--panel);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.78);
+}
+
+.overlay.hidden { display: none; }
+
+.overlay-title {
+  margin: 0;
+  font-size: clamp(1.2rem, 6vmin, 1.6rem);
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: var(--accent);
+  text-transform: lowercase;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.6);
+}
+
+.overlay-msg {
+  margin: 0;
+  color: var(--dim);
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* blinking terminal cursor after the overlay message */
+.cursor {
+  margin-left: 0.15em;
+  color: var(--fg);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* bottom status bar, like a terminal footer */
+.statusbar {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;         /* never break onto a second row */
+  white-space: nowrap;       /* keep each label on one line */
+  gap: 1rem;
+  padding: 0 0.15rem;
+  color: var(--fg);
+  text-shadow: 0 0 8px rgba(125, 216, 143, 0.35);
+}
+
+.statusbar span { flex: 0 0 auto; }   /* don't shrink/wrap the labels */
+
+#score { min-width: 4.5em; }           /* reserve room so 2 digits don't shift layout */
+
+.statusbar .keys {
+  margin-left: auto;   /* push controls hint to the right edge */
+  color: var(--dim);
+  text-shadow: none;
+}
