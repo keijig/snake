@@ -37,8 +37,8 @@ body {
 .app-body {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 2.25rem;
+  gap: 1.25rem;
+  padding: 2.25rem 2.25rem 1.5rem;   /* less room under the footer */
 }
 
 /* game (left) beside leaderboard (right) */
@@ -64,13 +64,12 @@ body {
 /* account status, along the bottom */
 .footer {
   border-top: 1px solid #12251a;
-  padding-top: 0.85rem;
+  padding-top: 0.9rem;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
   font-size: 13px;
-  min-height: 2.4em;
 }
 
 /* stack when there isn't room for two columns */
