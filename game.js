@@ -108,6 +108,7 @@ let snake, direction, food, score, state, timer;
 let highScore = loadHighScore();
 let dirQueue = [];                            // buffered turns (fast corners)
 let lastTickAt = 0;                           // ms of last move, for eager turns
+let gameStartAt = 0;                          // ms the current run began (anti-cheat)
 
 function reset() {
   snake = [{ x: 10, y: 10 }];                 // array of segments; [0] is the head
@@ -151,6 +152,7 @@ function goStart() {
 function startGame() {
   reset();
   state = "playing";
+  gameStartAt = performance.now();            // start the run clock
   hideOverlay();
   sndStart();
   loop();
@@ -183,7 +185,8 @@ function gameOver() {
     showOverlay("game over", "score " + score + " · space to play again");
   }
   // let the online leaderboard (if configured) record this run
-  document.dispatchEvent(new CustomEvent("snake:gameover", { detail: { score } }));
+  const durationMs = performance.now() - gameStartAt;
+  document.dispatchEvent(new CustomEvent("snake:gameover", { detail: { score, durationMs } }));
 }
 
 // ---- Input ----------------------------------------------------------------

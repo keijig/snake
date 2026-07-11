@@ -142,14 +142,15 @@
   }
 
   // ---- score submission ---------------------------------------------------
-  async function submitScore(score) {
+  // Goes through the submit-score Edge Function, which validates server-side.
+  // The client can no longer write best_score directly (see RLS lockdown).
+  async function submitScore(score, durationMs) {
     if (!user || !profile || score <= profile.best_score) return;
-    const { error } = await sb.from("profiles")
-      .update({ best_score: score, updated_at: new Date().toISOString() })
-      .eq("id", user.id)
-      .lt("best_score", score);                 // only ever raises the best
-    if (!error) {
-      profile.best_score = score;
+    const { data, error } = await sb.functions.invoke("submit-score", {
+      body: { score, durationMs },
+    });
+    if (!error && data && data.ok) {
+      profile.best_score = typeof data.best === "number" ? data.best : Math.max(profile.best_score, score);
       await loadBoard();
     }
   }
@@ -177,7 +178,7 @@
     await loadBoard();
   });
 
-  document.addEventListener("snake:gameover", (e) => submitScore(e.detail.score));
+  document.addEventListener("snake:gameover", (e) => submitScore(e.detail.score, e.detail.durationMs));
 
   (async function boot() {
     const { data } = await sb.auth.getSession();
