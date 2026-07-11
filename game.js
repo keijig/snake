@@ -8,6 +8,14 @@ const overlayTitleEl = document.getElementById("overlayTitle");
 const overlayMsgEl = document.getElementById("overlayMsg");
 const muteEl = document.getElementById("mute");
 
+// touch devices get tap/swipe wording instead of keyboard wording
+const TOUCH = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+const MSG = {
+  start: TOUCH ? "tap to start" : "press space to start",
+  resume: TOUCH ? "tap to resume" : "space to resume",
+  again: TOUCH ? "tap to play again" : "space to play again",
+};
+
 const CELL = 20;                              // each grid square is 20px
 const COLS = canvas.width / CELL;             // 400 / 20 = 20 columns
 const ROWS = canvas.height / CELL;
@@ -146,7 +154,7 @@ function hideOverlay() {
 function goStart() {
   state = "start";
   reset();
-  showOverlay("snake", "press space to start");
+  showOverlay("snake", MSG.start);
 }
 
 function startGame() {
@@ -162,7 +170,7 @@ function pauseGame() {
   if (state !== "playing") return;
   state = "paused";
   clearTimeout(timer);
-  showOverlay("paused", "space to resume");
+  showOverlay("paused", MSG.resume);
 }
 
 function resumeGame() {
@@ -180,9 +188,9 @@ function gameOver() {
     highScore = score;
     saveHighScore(highScore);
     bestEl.textContent = "best " + highScore;
-    showOverlay("new best · " + score, "space to play again");
+    showOverlay("new best · " + score, MSG.again);
   } else {
-    showOverlay("game over", "score " + score + " · space to play again");
+    showOverlay("game over", "score " + score + " · " + MSG.again);
   }
   // let the online leaderboard (if configured) record this run
   const durationMs = performance.now() - gameStartAt;
@@ -209,33 +217,17 @@ function queueTurn(dir) {
   return true;
 }
 
-document.addEventListener("keydown", (e) => {
-  if (window.SNAKE_LOCKED) return;            // login gate is up — ignore game keys
-  const key = e.key;
+// The one action shared by Space and a tap: start / pause / resume / restart.
+function primaryAction() {
+  if (state === "start" || state === "over") startGame();
+  else if (state === "playing") pauseGame();
+  else if (state === "paused") resumeGame();
+}
 
-  initAudio();                                // unlock audio on first gesture
-
-  // M toggles sound, on any screen.
-  if (key === "m" || key === "M") {
-    setMute(!muted);
-    return;
-  }
-
-  // Space is the one control: start / pause / resume / restart.
-  if (key === " ") {
-    e.preventDefault();                       // stop the page from scrolling
-    if (state === "start" || state === "over") startGame();
-    else if (state === "playing") pauseGame();
-    else if (state === "paused") resumeGame();
-    return;
-  }
-
-  // Movement only matters while playing.
+// Apply a turn (from a key or a swipe) while playing.
+function applyTurn(dir) {
   if (state !== "playing") return;
-  const dir = KEYS[key];
-  if (!dir) return;
   if (!queueTurn(dir)) return;
-
   // Snappy: bring the next step forward so the turn shows up fast regardless of
   // when in the interval you pressed. Never sooner than EAGER_MIN after the last
   // step, so this can't be used to outrun the game's top speed.
@@ -243,7 +235,54 @@ document.addEventListener("keydown", (e) => {
   clearTimeout(timer);
   if (elapsed >= EAGER_MIN) loop();
   else timer = setTimeout(loop, EAGER_MIN - elapsed);
+}
+
+document.addEventListener("keydown", (e) => {
+  if (window.SNAKE_LOCKED) return;            // login gate is up — ignore game keys
+  const key = e.key;
+
+  initAudio();                                // unlock audio on first gesture
+
+  if (key === "m" || key === "M") { setMute(!muted); return; }
+  if (key === " ") { e.preventDefault(); primaryAction(); return; }
+
+  const dir = KEYS[key];
+  if (dir) applyTurn(dir);
 });
+
+// ---- Touch: swipe to turn, tap to start/pause/restart --------------------
+let touchX = 0, touchY = 0, touching = false;
+const SWIPE_MIN = 24;                         // px before a drag counts as a swipe
+
+canvas.parentElement.addEventListener("touchstart", (e) => {
+  if (window.SNAKE_LOCKED) return;
+  initAudio();
+  const t = e.changedTouches[0];
+  touchX = t.clientX; touchY = t.clientY; touching = true;
+  e.preventDefault();                         // no scroll/zoom on the board
+}, { passive: false });
+
+canvas.parentElement.addEventListener("touchmove", (e) => {
+  if (touching) e.preventDefault();
+}, { passive: false });
+
+canvas.parentElement.addEventListener("touchend", (e) => {
+  if (window.SNAKE_LOCKED || !touching) return;
+  touching = false;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchX, dy = t.clientY - touchY;
+  if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) {
+    primaryAction();                          // a tap
+  } else if (Math.abs(dx) > Math.abs(dy)) {
+    applyTurn({ x: dx > 0 ? 1 : -1, y: 0 });  // horizontal swipe
+  } else {
+    applyTurn({ x: 0, y: dy > 0 ? 1 : -1 });  // vertical swipe
+  }
+  e.preventDefault();
+}, { passive: false });
+
+// Tapping the ♪ indicator toggles sound (mobile has no keyboard).
+muteEl.addEventListener("click", () => { initAudio(); setMute(!muted); });
 
 // ---- Game loop (logic) ----------------------------------------------------
 // Self-scheduling timeout so the delay can shrink as the score grows.
@@ -334,5 +373,9 @@ document.addEventListener("snake:lock", () => {
 
 // ---- Start ----------------------------------------------------------------
 muteEl.textContent = muted ? "♪ off" : "♪ on";
+if (TOUCH) {
+  const ch = document.getElementById("controlsHint");
+  if (ch) ch.textContent = "swipe · tap";     // no keyboard on touch devices
+}
 goStart();
 requestAnimationFrame(render);
