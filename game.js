@@ -32,7 +32,7 @@ const delayFor = (s) => Math.max(MIN_DELAY, BASE_DELAY - s * SPEEDUP);
 // When you turn, pull the next step forward to this soon after the last one —
 // so a turn always shows up within ~EAGER_MIN ms no matter when you pressed,
 // while still capping how fast the snake can actually step.
-const EAGER_MIN = 60;
+const EAGER_MIN = 35;
 
 // ---- Persistence ----------------------------------------------------------
 const HS_KEY = "snake.highScore";
