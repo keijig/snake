@@ -23,10 +23,10 @@ const ROWS = canvas.height / CELL;
 // ---- Speed ----------------------------------------------------------------
 // Snake starts slow and speeds up as you eat — floored so it stays playable.
 // Gentle linear ramp: drops SPEEDUP ms per point until it hits MIN_DELAY.
-// With these values the fastest speed isn't reached until ~score 40.
+// With these values top speed isn't reached until score 100.
 const BASE_DELAY = 150;                       // ms per tick at score 0
-const MIN_DELAY = 90;                         // fastest we'll ever go
-const SPEEDUP = 1.5;                          // ms shaved off per point
+const MIN_DELAY = 65;                         // fastest we'll ever go
+const SPEEDUP = 0.85;                         // ms shaved off per point
 const delayFor = (s) => Math.max(MIN_DELAY, BASE_DELAY - s * SPEEDUP);
 
 // When you turn, pull the next step forward to this soon after the last one —
