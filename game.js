@@ -14,6 +14,7 @@ const MSG = {
   start: TOUCH ? "tap to start" : "press space to start",
   resume: TOUCH ? "tap to resume" : "space to resume",
   again: TOUCH ? "tap to play again" : "space to play again",
+  firstMove: TOUCH ? "swipe to move" : "press a direction",
 };
 
 const CELL = 20;                              // each grid square is 20px
@@ -117,11 +118,13 @@ let highScore = loadHighScore();
 let dirQueue = [];                            // buffered turns (fast corners)
 let lastTickAt = 0;                           // ms of last move, for eager turns
 let gameStartAt = 0;                          // ms the current run began (anti-cheat)
+let awaitingMove = false;                     // started, but waiting for first direction
 
 function reset() {
   snake = [{ x: 10, y: 10 }];                 // array of segments; [0] is the head
-  direction = { x: 1, y: 0 };                 // start moving right
+  direction = { x: 1, y: 0 };                 // default until the first input
   dirQueue = [];
+  awaitingMove = false;
   lastTickAt = 0;
   food = randomFood();
   score = 0;
@@ -143,12 +146,24 @@ const rand = (n) => Math.floor(Math.random() * n);
 
 // ---- Screens (overlay) ----------------------------------------------------
 function showOverlay(title, msg) {
+  overlayEl.classList.remove("hint");
+  overlayTitleEl.style.display = "";
   overlayTitleEl.textContent = title;
+  overlayMsgEl.textContent = msg;
+  overlayEl.classList.remove("hidden");
+}
+// like showOverlay but doesn't dim the board — used while the snake waits in
+// the centre for the first move, so it stays visible.
+function showHint(msg) {
+  overlayEl.classList.add("hint");
+  overlayTitleEl.style.display = "none";
   overlayMsgEl.textContent = msg;
   overlayEl.classList.remove("hidden");
 }
 function hideOverlay() {
   overlayEl.classList.add("hidden");
+  overlayEl.classList.remove("hint");
+  overlayTitleEl.style.display = "";
 }
 
 function goStart() {
@@ -160,14 +175,13 @@ function goStart() {
 function startGame() {
   reset();
   state = "playing";
-  gameStartAt = performance.now();            // start the run clock
-  hideOverlay();
+  awaitingMove = true;                         // sit still until a direction is given
   sndStart();
-  loop();
+  showHint(MSG.firstMove);
 }
 
 function pauseGame() {
-  if (state !== "playing") return;
+  if (state !== "playing" || awaitingMove) return;
   state = "paused";
   clearTimeout(timer);
   showOverlay("paused", MSG.resume);
@@ -227,6 +241,19 @@ function primaryAction() {
 // Apply a turn (from a key or a swipe) while playing.
 function applyTurn(dir) {
   if (state !== "playing") return;
+
+  // first input of the run: head off in that direction immediately (any way)
+  if (awaitingMove) {
+    awaitingMove = false;
+    direction = dir;
+    dirQueue = [];
+    gameStartAt = performance.now();
+    lastTickAt = performance.now();
+    hideOverlay();
+    loop();
+    return;
+  }
+
   if (!queueTurn(dir)) return;
   // Snappy: bring the next step forward so the turn shows up fast regardless of
   // when in the interval you pressed. Never sooner than EAGER_MIN after the last

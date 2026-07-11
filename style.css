@@ -115,6 +115,13 @@ canvas {
 
 .overlay.hidden { display: none; }
 
+/* hint variant: don't dim the board, sit the message near the bottom */
+.overlay.hint {
+  background: transparent;
+  justify-content: flex-end;
+  padding-bottom: 1.6rem;
+}
+
 .overlay-title {
   margin: 0;
   font-size: clamp(1.2rem, 6vmin, 1.6rem);
