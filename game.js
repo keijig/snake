@@ -465,11 +465,12 @@ function draw() {
 
   drawGrid();
 
-  // food — warm amber with a phosphor glow
+  // food — warm amber normally, bright cyan in chaos (max contrast vs gold/bombs)
+  const foodColor = mode === "chaos" ? "#22d3ee" : "#e0af68";
   ctx.save();
-  ctx.shadowColor = "#e0af68";
+  ctx.shadowColor = foodColor;
   ctx.shadowBlur = 10;
-  ctx.fillStyle = "#e0af68";
+  ctx.fillStyle = foodColor;
   ctx.fillRect(food.x * CELL + 3, food.y * CELL + 3, CELL - 6, CELL - 6);
   ctx.restore();
 
@@ -509,22 +510,22 @@ function drawStartArrows() {
   ctx.restore();
 }
 
-// chaos extras: red bombs + a pulsing gold tile
+// chaos extras: vivid red bombs + a bright pulsing gold tile
 function drawChaos() {
   ctx.save();
-  ctx.shadowColor = "#f87171";
-  ctx.shadowBlur = 8;
-  ctx.fillStyle = "#f87171";
-  for (const b of bombs) ctx.fillRect(b.x * CELL + 3, b.y * CELL + 3, CELL - 6, CELL - 6);
+  ctx.shadowColor = "#ff3b3b";
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = "#ff3b3b";
+  for (const b of bombs) ctx.fillRect(b.x * CELL + 2, b.y * CELL + 2, CELL - 4, CELL - 4);
   ctx.restore();
 
   if (gold) {
-    const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 150);
+    const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 150);
     ctx.save();
-    ctx.globalAlpha = Math.max(0.2, pulse);
-    ctx.shadowColor = "#ffe14d";
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = "#ffe14d";
+    ctx.globalAlpha = Math.max(0.35, pulse);
+    ctx.shadowColor = "#ffd21e";
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = "#ffd21e";
     ctx.fillRect(gold.x * CELL + 2, gold.y * CELL + 2, CELL - 4, CELL - 4);
     ctx.restore();
   }
