@@ -465,12 +465,11 @@ function draw() {
 
   drawGrid();
 
-  // food — warm amber normally, bright cyan in chaos (max contrast vs gold/bombs)
-  const foodColor = mode === "chaos" ? "#22d3ee" : "#e0af68";
+  // food — warm amber with a phosphor glow
   ctx.save();
-  ctx.shadowColor = foodColor;
+  ctx.shadowColor = "#e0af68";
   ctx.shadowBlur = 10;
-  ctx.fillStyle = foodColor;
+  ctx.fillStyle = "#e0af68";
   ctx.fillRect(food.x * CELL + 3, food.y * CELL + 3, CELL - 6, CELL - 6);
   ctx.restore();
 
