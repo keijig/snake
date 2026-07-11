@@ -72,6 +72,29 @@ body {
   font-size: 13px;
 }
 
+/* mode picker in the footer, beside the account status */
+.modepick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--dim);
+}
+.modepick select {
+  background: #030503;
+  color: var(--fg);
+  border: 1px solid var(--dim);
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.modepick select:focus { outline: none; border-color: var(--accent); }
+
+/* modes with no online board hide the leaderboard column */
+.app-card.solo .right { display: none; }
+/* zen grows the board to eat the reclaimed space */
+.app-card[data-mode="zen"] { --size: min(90vw, 92vmin, 560px); }
+
 /* stack when there isn't room for two columns */
 @media (max-width: 640px) {
   .main { flex-direction: column; align-items: center; }

@@ -144,7 +144,9 @@
   // ---- score submission ---------------------------------------------------
   // Goes through the submit-score Edge Function, which validates server-side.
   // The client can no longer write best_score directly (see RLS lockdown).
-  async function submitScore(score, durationMs) {
+  // Phase 1: only "classic" has an online board — other modes don't submit yet.
+  async function submitScore(score, durationMs, mode) {
+    if (mode !== "classic") return;
     if (!user || !profile || score <= profile.best_score) return;
     const { data, error } = await sb.functions.invoke("submit-score", {
       body: { score, durationMs },
@@ -178,7 +180,8 @@
     await loadBoard();
   });
 
-  document.addEventListener("snake:gameover", (e) => submitScore(e.detail.score, e.detail.durationMs));
+  document.addEventListener("snake:gameover",
+    (e) => submitScore(e.detail.score, e.detail.durationMs, e.detail.mode));
 
   (async function boot() {
     const { data } = await sb.auth.getSession();

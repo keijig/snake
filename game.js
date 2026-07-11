@@ -34,14 +34,36 @@ const delayFor = (s) => Math.max(MIN_DELAY, BASE_DELAY - s * SPEEDUP);
 // while still capping how fast the snake can actually step.
 const EAGER_MIN = 35;
 
+const ZEN_DELAY = 130;                         // calm constant speed for zen
+
+// ---- Modes ----------------------------------------------------------------
+// classic: walls kill, speed ramps.  wrap: edges wrap.  chaos: fleeing food +
+// gold (+2) + bombs.  zen: no death (walls wrap, pass through self), calm speed.
+const MODES = ["classic", "wrap", "chaos", "zen"];
+const MODE_KEY = "snake.mode";
+let mode = MODES.includes(localStorage.getItem(MODE_KEY))
+  ? localStorage.getItem(MODE_KEY) : "classic";
+window.SNAKE_MODE = mode;
+window.SNAKE_RANKED = ["classic"];             // modes with an online board (for now)
+
+const wraps = () => mode === "wrap" || mode === "zen";
+const selfKills = () => mode !== "zen";
+const currentDelay = () => (mode === "zen" ? ZEN_DELAY : delayFor(score));
+
+// chaos tuning (in ticks)
+const FLEE_EVERY = 3;                           // food drifts away this often
+const GOLD_EVERY = 55, GOLD_LIFE = 22;         // gold spawn interval / lifespan
+const BOMB_EVERY = 45, BOMB_COUNT = 3;         // bombs relocate interval / count
+
 // ---- Persistence ----------------------------------------------------------
+// local best is per mode, so each mode tracks its own
 const HS_KEY = "snake.highScore";
 function loadHighScore() {
-  const n = Number(localStorage.getItem(HS_KEY));
+  const n = Number(localStorage.getItem(HS_KEY + "." + mode));
   return Number.isFinite(n) ? n : 0;
 }
 function saveHighScore(n) {
-  try { localStorage.setItem(HS_KEY, String(n)); } catch { /* storage disabled */ }
+  try { localStorage.setItem(HS_KEY + "." + mode, String(n)); } catch { /* storage disabled */ }
 }
 
 // ---- Sound ----------------------------------------------------------------
@@ -118,6 +140,9 @@ let dirQueue = [];                            // buffered turns (fast corners)
 let lastTickAt = 0;                           // ms of last move, for eager turns
 let gameStartAt = 0;                          // ms the current run began (anti-cheat)
 let awaitingMove = false;                     // started, but waiting for first direction
+let gold = null, goldExpiry = 0;              // chaos: bonus food (+2) + its expiry tick
+let bombs = [];                               // chaos: hazard tiles
+let tickCount = 0;                            // chaos: drives timed events
 
 function reset() {
   snake = [{ x: 10, y: 10 }];                 // array of segments; [0] is the head
@@ -125,23 +150,33 @@ function reset() {
   dirQueue = [];
   awaitingMove = false;
   lastTickAt = 0;
-  food = randomFood();
+  gold = null; goldExpiry = 0; bombs = []; tickCount = 0;
+  food = freeCell();
+  if (mode === "chaos") spawnBombs(BOMB_COUNT);
   score = 0;
   twinkleIdx = 0;                             // restart the melody each game
   scoreEl.textContent = "score 0";
   bestEl.textContent = "best " + highScore;
 }
 
-function randomFood() {
-  // drop food on a random cell that isn't under the snake
-  let pos;
-  do {
-    pos = { x: rand(COLS), y: rand(ROWS) };
-  } while (snake.some((s) => s.x === pos.x && s.y === pos.y));
-  return pos;
-}
-
 const rand = (n) => Math.floor(Math.random() * n);
+
+// is a cell taken by the snake, food, gold, or a bomb?
+function occupied(x, y) {
+  return snake.some((s) => s.x === x && s.y === y) ||
+    (food && food.x === x && food.y === y) ||
+    (gold && gold.x === x && gold.y === y) ||
+    bombs.some((b) => b.x === x && b.y === y);
+}
+function freeCell() {
+  let x, y;
+  do { x = rand(COLS); y = rand(ROWS); } while (occupied(x, y));
+  return { x, y };
+}
+function spawnBombs(n) {
+  bombs = [];
+  for (let i = 0; i < n; i++) bombs.push(freeCell());
+}
 
 // ---- Screens (overlay) ----------------------------------------------------
 function showOverlay(title, msg) {
@@ -199,7 +234,28 @@ function gameOver() {
   }
   // let the online leaderboard (if configured) record this run
   const durationMs = performance.now() - gameStartAt;
-  document.dispatchEvent(new CustomEvent("snake:gameover", { detail: { score, durationMs } }));
+  document.dispatchEvent(new CustomEvent("snake:gameover", { detail: { score, durationMs, mode } }));
+}
+
+// ---- Mode switching -------------------------------------------------------
+function setMode(m) {
+  if (!MODES.includes(m) || m === mode) return;
+  clearTimeout(timer);                         // cancel any pending tick
+  mode = m;
+  window.SNAKE_MODE = m;
+  try { localStorage.setItem(MODE_KEY, m); } catch { /* storage disabled */ }
+  highScore = loadHighScore();                 // per-mode best
+  applyModeLayout();
+  document.dispatchEvent(new CustomEvent("snake:mode", { detail: { mode: m } }));
+  goStart();                                   // fresh start screen for the new mode
+}
+
+function applyModeLayout() {
+  const card = document.querySelector(".app-card");
+  if (!card) return;
+  card.dataset.mode = mode;
+  // "solo" = no online board for this mode → hide the leaderboard column
+  card.classList.toggle("solo", !window.SNAKE_RANKED.includes(mode));
 }
 
 // ---- Input ----------------------------------------------------------------
@@ -308,32 +364,91 @@ function loop() {
   if (state !== "playing") return;
   tick();
   lastTickAt = performance.now();
-  if (state === "playing") timer = setTimeout(loop, delayFor(score));
+  if (state === "playing") timer = setTimeout(loop, currentDelay());
 }
 
 function tick() {
   if (dirQueue.length) direction = dirQueue.shift();   // apply next buffered turn
+  tickCount++;
 
-  // new head = current head + direction
   const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
-  // hit a wall? game over.
-  const hitWall = head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS;
-  // hit yourself? The tail is excluded — it vacates its cell this tick, so
-  // moving into where the tail *was* is fine (and food never spawns on the
-  // snake, so we can't grow into the tail).
-  const hitSelf = snake.slice(0, -1).some((s) => s.x === head.x && s.y === head.y);
-  if (hitWall || hitSelf) return gameOver();
+  // walls: wrap (wrap/zen) or kill (classic/chaos)
+  if (wraps()) {
+    head.x = (head.x + COLS) % COLS;
+    head.y = (head.y + ROWS) % ROWS;
+  } else if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+    return gameOver();
+  }
+
+  // self-collision kills everywhere except zen. Tail is excluded — it vacates
+  // its cell this tick.
+  if (selfKills() && snake.slice(0, -1).some((s) => s.x === head.x && s.y === head.y)) {
+    return gameOver();
+  }
+
+  // chaos: touching a bomb ends the run
+  if (mode === "chaos" && bombs.some((b) => b.x === head.x && b.y === head.y)) {
+    return gameOver();
+  }
 
   snake.unshift(head);                        // add new head to the front
 
+  let grew = false;
   if (head.x === food.x && head.y === food.y) {
     score++;
     scoreEl.textContent = "score " + score;
     sndEat();
-    food = randomFood();                      // grew: keep the tail (don't pop)
-  } else {
-    snake.pop();                              // didn't eat: remove tail (move)
+    food = freeCell();
+    grew = true;
+  }
+  if (mode === "chaos" && gold && head.x === gold.x && head.y === gold.y) {
+    score += 2;                                // gold is worth +2
+    scoreEl.textContent = "score " + score;
+    sndEat();
+    gold = null;
+    grew = true;
+  }
+  if (!grew) snake.pop();                      // didn't eat: remove tail (move)
+
+  // zen never "ends", so track its best live instead of at game over
+  if (mode === "zen" && score > highScore) {
+    highScore = score;
+    saveHighScore(highScore);
+    bestEl.textContent = "best " + highScore;
+  }
+
+  if (mode === "chaos") chaosStep();
+}
+
+// chaos: fleeing food, gold lifecycle, bomb relocation
+function chaosStep() {
+  if (tickCount % FLEE_EVERY === 0) fleeFood();
+
+  if (gold && tickCount >= goldExpiry) gold = null;
+  if (!gold && tickCount > 0 && tickCount % GOLD_EVERY === 0) {
+    gold = freeCell();
+    goldExpiry = tickCount + GOLD_LIFE;
+  }
+
+  if (tickCount > 0 && tickCount % BOMB_EVERY === 0) spawnBombs(BOMB_COUNT);
+}
+
+// nudge the food one cell away from the head (into a free cell)
+function fleeFood() {
+  const h = snake[0];
+  const away = [];
+  if (food.x !== h.x) away.push({ x: food.x + Math.sign(food.x - h.x), y: food.y });
+  if (food.y !== h.y) away.push({ x: food.x, y: food.y + Math.sign(food.y - h.y) });
+  away.push(
+    { x: food.x + 1, y: food.y }, { x: food.x - 1, y: food.y },
+    { x: food.x, y: food.y + 1 }, { x: food.x, y: food.y - 1 },
+  );
+  for (const c of away) {
+    if (c.x >= 0 && c.x < COLS && c.y >= 0 && c.y < ROWS && !occupied(c.x, c.y)) {
+      food = c;
+      return;
+    }
   }
 }
 
@@ -357,6 +472,8 @@ function draw() {
   ctx.fillStyle = "#e0af68";
   ctx.fillRect(food.x * CELL + 3, food.y * CELL + 3, CELL - 6, CELL - 6);
   ctx.restore();
+
+  if (mode === "chaos") drawChaos();
 
   // snake — one square per grid cell, with a phosphor glow
   ctx.save();
@@ -392,6 +509,27 @@ function drawStartArrows() {
   ctx.restore();
 }
 
+// chaos extras: red bombs + a pulsing gold tile
+function drawChaos() {
+  ctx.save();
+  ctx.shadowColor = "#f87171";
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = "#f87171";
+  for (const b of bombs) ctx.fillRect(b.x * CELL + 3, b.y * CELL + 3, CELL - 6, CELL - 6);
+  ctx.restore();
+
+  if (gold) {
+    const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 150);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.2, pulse);
+    ctx.shadowColor = "#ffe14d";
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = "#ffe14d";
+    ctx.fillRect(gold.x * CELL + 2, gold.y * CELL + 2, CELL - 4, CELL - 4);
+    ctx.restore();
+  }
+}
+
 function drawGrid() {
   ctx.strokeStyle = "#0c140d";
   ctx.lineWidth = 1;
@@ -418,5 +556,13 @@ if (TOUCH) {
   const ch = document.getElementById("controlsHint");
   if (ch) ch.textContent = "swipe · tap";     // no keyboard on touch devices
 }
+
+const modeSelect = document.getElementById("modeSelect");
+if (modeSelect) {
+  modeSelect.value = mode;
+  modeSelect.addEventListener("change", () => setMode(modeSelect.value));
+}
+applyModeLayout();
+
 goStart();
 requestAnimationFrame(render);
