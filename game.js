@@ -14,7 +14,6 @@ const MSG = {
   start: TOUCH ? "tap to start" : "press space to start",
   resume: TOUCH ? "tap to resume" : "space to resume",
   again: TOUCH ? "tap to play again" : "space to play again",
-  firstMove: TOUCH ? "swipe to move" : "press a direction",
 };
 
 const CELL = 20;                              // each grid square is 20px
@@ -152,14 +151,6 @@ function showOverlay(title, msg) {
   overlayMsgEl.textContent = msg;
   overlayEl.classList.remove("hidden");
 }
-// like showOverlay but doesn't dim the board — used while the snake waits in
-// the centre for the first move, so it stays visible.
-function showHint(msg) {
-  overlayEl.classList.add("hint");
-  overlayTitleEl.style.display = "none";
-  overlayMsgEl.textContent = msg;
-  overlayEl.classList.remove("hidden");
-}
 function hideOverlay() {
   overlayEl.classList.add("hidden");
   overlayEl.classList.remove("hint");
@@ -177,7 +168,7 @@ function startGame() {
   state = "playing";
   awaitingMove = true;                         // sit still until a direction is given
   sndStart();
-  showHint(MSG.firstMove);
+  hideOverlay();                               // arrows are drawn on the canvas instead
 }
 
 function pauseGame() {
@@ -375,6 +366,29 @@ function draw() {
     ctx.fillStyle = i === 0 ? "#7dff9b" : "#4ade80";
     ctx.fillRect(snake[i].x * CELL + 1, snake[i].y * CELL + 1, CELL - 2, CELL - 2);
   }
+  ctx.restore();
+
+  if (awaitingMove) drawStartArrows();
+}
+
+// four arrows around the head, gently pulsing — shown while waiting for the
+// first direction of a run.
+function drawStartArrows() {
+  const cx = snake[0].x * CELL + CELL / 2;
+  const cy = snake[0].y * CELL + CELL / 2;
+  const d = 26;                                 // distance from head centre
+  const pulse = 0.16 + 0.12 * (0.5 + 0.5 * Math.sin(performance.now() / 380));
+
+  ctx.save();
+  ctx.globalAlpha = pulse;                      // super-light blink
+  ctx.fillStyle = "#7dd88f";
+  ctx.font = "18px 'SF Mono', Menlo, ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("↑", cx, cy - d);
+  ctx.fillText("↓", cx, cy + d);
+  ctx.fillText("←", cx - d, cy);
+  ctx.fillText("→", cx + d, cy);
   ctx.restore();
 }
 
